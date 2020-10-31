@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "ADAX",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -9,7 +9,19 @@
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "ADAX"
+      },
+      "clientId": {
+        "title": "Account/client ID",
+        "type": "string",
+        "required": true,
+        "default": ""
+      },
+      "secret": {
+        "title": "Secret",
+        "type": "string",
+        "required": true,
+        "default": ""
       }
     }
   }
