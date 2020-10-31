@@ -80,7 +80,7 @@ export class ADAXPlatformAccessory {
       };
 
       return room;
-    }).catch(err => console.log(err));
+    });
   }
 
   sleep(ms) {
