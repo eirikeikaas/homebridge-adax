@@ -87,8 +87,18 @@ export class ADAXPlatformAccessory {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  precision(number: number) {
+    return parseFloat(number.toFixed(1));
+  }
+
   heatingState() {
-    const { targetTemperature, temperature } = this.roomState.room;
+    let { targetTemperature, temperature } = this.roomState.room;
+    targetTemperature = this.precision(targetTemperature);
+    temperature = this.precision(temperature);
+
+    if (targetTemperature === temperature) {
+      return 3; 
+    }
     return targetTemperature > temperature ? 1 : 2;
   }
 
@@ -138,7 +148,7 @@ export class ADAXPlatformAccessory {
 
   handleCurrentTemperatureGet(callback) {
     this.getDeviceStatus().then((state) => {
-      callback(null, (state.temperature/100).toFixed(1));
+      callback(null, this.precision(state.temperature/100));
     });
   }
 
@@ -148,7 +158,7 @@ export class ADAXPlatformAccessory {
 
   handleTargetTemperatureGet(callback) {
     this.getDeviceStatus().then((state) => {
-      callback(null, (state.targetTemperature/100).toFixed(1));
+      callback(null, this.precision(state.targetTemperature/100));
     });
   }
 
