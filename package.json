@@ -1,7 +1,7 @@
 {
   "displayName": "Adax",
   "name": "homebridge-adax",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Homebridge plugin for ADAX heaters.",
   "license": "Apache-2.0",
   "repository": {
