@@ -1,7 +1,5 @@
 import { Service, PlatformAccessory } from 'homebridge';
 
-import moment from 'moment';
-
 import { ADAXHomebridgePlatform } from './platform';
 
 export class ADAXPlatformAccessory {

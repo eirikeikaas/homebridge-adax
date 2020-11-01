@@ -79,7 +79,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
       this.homeState = home;
       return home;
     }).catch((err) => {
-      console.log(err);
+      this.log.error(err);
       return Promise.resolve(this.homeState);
     });
   }
