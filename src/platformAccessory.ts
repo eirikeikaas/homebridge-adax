@@ -1,6 +1,5 @@
 import { Service, PlatformAccessory } from 'homebridge';
 
-import fetch from 'node-fetch';
 import moment from 'moment';
 
 import { ADAXHomebridgePlatform } from './platform';
@@ -10,13 +9,10 @@ export class ADAXPlatformAccessory {
 
 
   private roomState = {
-    stamp: moment(),
-    room: {
-      id: null,
-      heatingEnabled: true,
-      targetTemperature: 1800,
-      temperature: 1800,
-    },
+    id: null,
+    heatingEnabled: true,
+    targetTemperature: 1800,
+    temperature: 1800,
   };
 
   constructor(
@@ -51,40 +47,19 @@ export class ADAXPlatformAccessory {
       .on('get', this.handleTargetTemperatureGet.bind(this))
       .on('set', this.handleTargetTemperatureSet.bind(this));
 
-    this.roomState.room = accessory.context.device;
+    this.roomState = accessory.context.device;
   }
 
-  getDeviceStatus() {
-    if(this.roomState.room.id !== undefined && moment(this.roomState.stamp).add(30, 's').isAfter(moment())) {
-      return Promise.resolve(this.roomState.room);
-    }
-
-    return fetch('https://api-1.adax.no/client-api/rest/v1/content', {
-      headers: {
-        Authorization: `Bearer ${this.platform.token}`,
-      },
-    }).then((res) => {
-      if (res.status === 429) {
-        return Promise.resolve({ rooms: [this.roomState.room] });
-      }
-
-      return res.json();
-    }).then((json) => {
-      const room = json.rooms.filter((e) => {
+  getRoom() {
+    return this.platform.getHome().then((home) => {
+      const room = home.rooms.filter((e) => {
         return e.id === this.accessory.context.device.id;
       })[0];
 
-      this.roomState = {
-        stamp: moment(),
-        room: room,
-      };
+      this.roomState = room;
 
       return room;
     });
-  }
-
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   precision(number: number) {
@@ -93,7 +68,7 @@ export class ADAXPlatformAccessory {
 
   heatingState() {
     const { AUTO, HEAT, COOL } = this.platform.Characteristic.TargetHeaterCoolerState;
-    let { targetTemperature, temperature } = this.roomState.room;
+    let { targetTemperature, temperature } = this.roomState;
 
     targetTemperature = this.precision(targetTemperature);
     temperature = this.precision(temperature);
@@ -103,38 +78,6 @@ export class ADAXPlatformAccessory {
     }
 
     return targetTemperature > temperature ? HEAT : COOL;
-  }
-
-  _setDeviceStatus(state, delay = 0) {
-    return this.sleep(delay).then(() => {
-      return fetch('https://api-1.adax.no/client-api/rest/v1/control', {
-        method: 'POST',
-        body: JSON.stringify({
-          rooms: [
-            {
-              id: this.accessory.context.device.id,
-              ...state,
-            },
-          ],
-        }),
-        headers: {
-          Authorization: `Bearer ${this.platform.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    });
-  }
-
-  setDeviceStatus(state, delay = 0) {
-    return this._setDeviceStatus(state, delay).then((res) => {
-      if(res.status === 429) {
-        return this._setDeviceStatus(state, 5000);
-      } else {
-        return Promise.resolve(res);
-      }
-    }).then((res) => {
-      return res.text();
-    });
   }
 
   handleCurrentHeatingCoolingStateGet(callback) {
@@ -150,7 +93,7 @@ export class ADAXPlatformAccessory {
   }
 
   handleCurrentTemperatureGet(callback) {
-    this.getDeviceStatus().then((state) => {
+    this.getRoom().then((state) => {
       callback(null, this.precision(state.temperature/100));
     });
   }
@@ -160,13 +103,15 @@ export class ADAXPlatformAccessory {
   }
 
   handleTargetTemperatureGet(callback) {
-    this.getDeviceStatus().then((state) => {
+    this.getRoom().then((state) => {
       callback(null, this.precision(state.targetTemperature/100));
     });
   }
 
   handleTargetTemperatureSet(value, callback) {
-    this.setDeviceStatus({
+    const { id } = this.accessory.context.device;
+
+    this.platform.setRoom(id, {
       targetTemperature: value*100,
     }).then(() => {
       callback(null);
