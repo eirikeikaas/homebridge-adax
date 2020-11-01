@@ -92,14 +92,17 @@ export class ADAXPlatformAccessory {
   }
 
   heatingState() {
+    const { AUTO, HEAT, COOL } = this.platform.Characteristic.TargetHeaterCoolerState;
     let { targetTemperature, temperature } = this.roomState.room;
+
     targetTemperature = this.precision(targetTemperature);
     temperature = this.precision(temperature);
 
     if (targetTemperature === temperature) {
-      return 3; 
+      return AUTO; 
     }
-    return targetTemperature > temperature ? 1 : 2;
+
+    return targetTemperature > temperature ? HEAT : COOL;
   }
 
   _setDeviceStatus(state, delay = 0) {
