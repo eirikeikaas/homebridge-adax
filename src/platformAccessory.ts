@@ -1,10 +1,9 @@
-import { Service, PlatformAccessory } from 'homebridge';
+import { PlatformAccessory, Service } from 'homebridge';
 
 import { ADAXHomebridgePlatform } from './platform';
 
 export class ADAXPlatformAccessory {
   private service: Service;
-
 
   private roomState = {
     id: null,
@@ -15,33 +14,44 @@ export class ADAXPlatformAccessory {
 
   constructor(
     private readonly platform: ADAXHomebridgePlatform,
-    private readonly accessory: PlatformAccessory,
+    private readonly accessory: PlatformAccessory
   ) {
-
-    this.accessory.getService(this.platform.Service.AccessoryInformation)!
+    this.accessory
+      .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'ADAX')
       .setCharacteristic(this.platform.Characteristic.Model, 'N/A')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, 'N/A');
 
-    this.service = this.accessory.getService(this.platform.Service.Thermostat) ||
-                   this.accessory.addService(this.platform.Service.Thermostat);
+    this.service =
+      this.accessory.getService(this.platform.Service.Thermostat) ||
+      this.accessory.addService(this.platform.Service.Thermostat);
 
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.name);
+    this.service.setCharacteristic(
+      this.platform.Characteristic.Name,
+      accessory.context.device.name
+    );
 
-    this.service.getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState)
+    this.service
+      .getCharacteristic(
+        this.platform.Characteristic.CurrentHeatingCoolingState
+      )
       .on('get', this.handleCurrentHeatingCoolingStateGet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
+    this.service
+      .getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState)
       .on('get', this.handleTargetHeatingCoolingStateGet.bind(this))
       .on('set', this.handleTargetHeatingCoolingStateSet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
+    this.service
+      .getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits)
       .on('get', this.handleTemperatureDisplayUnitsGet.bind(this));
-    
-    this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature)
+
+    this.service
+      .getCharacteristic(this.platform.Characteristic.CurrentTemperature)
       .on('get', this.handleCurrentTemperatureGet.bind(this));
 
-    this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature)
+    this.service
+      .getCharacteristic(this.platform.Characteristic.TargetTemperature)
       .on('get', this.handleTargetTemperatureGet.bind(this))
       .on('set', this.handleTargetTemperatureSet.bind(this));
 
@@ -65,14 +75,24 @@ export class ADAXPlatformAccessory {
   }
 
   heatingState() {
-    const { AUTO, HEAT, COOL } = this.platform.Characteristic.TargetHeaterCoolerState;
+    const {
+      OFF,
+      AUTO,
+      HEAT,
+      COOL,
+    } = this.platform.Characteristic.TargetHeatingCoolingState;
     let { targetTemperature, temperature } = this.roomState;
 
-    targetTemperature = this.precision(targetTemperature);
-    temperature = this.precision(temperature);
+    // If we get an error handling the temperatures then mark the heater as 'OFF'
+    try {
+      targetTemperature = this.precision(targetTemperature);
+      temperature = this.precision(temperature);
+    } catch (e) {
+      return OFF;
+    }
 
     if (targetTemperature === temperature) {
-      return AUTO; 
+      return AUTO;
     }
 
     return targetTemperature > temperature ? HEAT : COOL;
@@ -92,7 +112,7 @@ export class ADAXPlatformAccessory {
 
   handleCurrentTemperatureGet(callback) {
     this.getRoom().then((state) => {
-      callback(null, this.precision(state.temperature/100));
+      callback(null, this.precision(state.temperature / 100));
     });
   }
 
@@ -102,17 +122,19 @@ export class ADAXPlatformAccessory {
 
   handleTargetTemperatureGet(callback) {
     this.getRoom().then((state) => {
-      callback(null, this.precision(state.targetTemperature/100));
+      callback(null, this.precision(state.targetTemperature / 100));
     });
   }
 
   handleTargetTemperatureSet(value, callback) {
     const { id } = this.accessory.context.device;
 
-    this.platform.setRoom(id, {
-      targetTemperature: value*100,
-    }).then(() => {
-      callback(null);
-    });
+    this.platform
+      .setRoom(id, {
+        targetTemperature: value * 100,
+      })
+      .then(() => {
+        callback(null);
+      });
   }
 }
