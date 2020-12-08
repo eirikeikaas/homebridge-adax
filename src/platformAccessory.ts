@@ -14,7 +14,7 @@ export class ADAXPlatformAccessory {
 
   constructor(
     private readonly platform: ADAXHomebridgePlatform,
-    private readonly accessory: PlatformAccessory
+    private readonly accessory: PlatformAccessory,
   ) {
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
@@ -28,12 +28,12 @@ export class ADAXPlatformAccessory {
 
     this.service.setCharacteristic(
       this.platform.Characteristic.Name,
-      accessory.context.device.name
+      accessory.context.device.name,
     );
 
     this.service
       .getCharacteristic(
-        this.platform.Characteristic.CurrentHeatingCoolingState
+        this.platform.Characteristic.CurrentHeatingCoolingState,
       )
       .on('get', this.handleCurrentHeatingCoolingStateGet.bind(this));
 
