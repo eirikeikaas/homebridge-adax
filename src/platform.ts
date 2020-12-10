@@ -83,13 +83,6 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
       });
     });
   }
-      return res.json();
-    }).then((json) => {
-      this.token = json;
-      
-      this.discoverDevices();
-    });
-  }
 
   sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
