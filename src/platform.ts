@@ -68,11 +68,19 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
         'content-type': 'application/x-www-form-urlencoded',
       },
     }).then((res) => {
+      if(!res.ok) {
+        throw res;
+      }
+      
       return res.json();
     }).then((json) => {
       this.token = json;
       
       this.discoverDevices();
+    }).catch((error) => {
+      error.text().then((text) => {
+        this.log.error(`Could not authenticate with error: ${text}`);
+      });
     });
   }
 
