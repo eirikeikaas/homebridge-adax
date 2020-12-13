@@ -2,7 +2,6 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 
 import fetch from 'node-fetch';
 import moment from 'moment';
-import equal from 'deep-equal';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { ADAXPlatformAccessory } from './platformAccessory';
@@ -17,11 +16,14 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   public token = {
     access_token: '',
     refresh_token: '',
+    expires_in: 0,
+    expiry_date: 0,
   };
 
-  public homeStamp = moment().subtract(1, 'm');
+  public homeStamp = moment().subtract(1, 'd');
   public homeState:Home = { rooms: [] };
   public planned:Array<Room> = [];
+  public queue:Array<Room> = [];
 
   constructor(
     public readonly log: Logger,
@@ -33,7 +35,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
       
-      this.getToken();
+      this.discoverDevices();
     });
 
     this.setState = this.setState.bind(this);
@@ -42,25 +44,39 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   setState() {
-    const state = this.cleanRooms(this.homeState.rooms);
+    const pollingInterval = this.config.maxPollingInterval as number;
 
-    if (!equal(this.planned, state)) {
-      fetch('https://api-1.adax.no/client-api/rest/v1/control', {
+
+    if (this.queue.length > 0) {
+      this.getToken().then( token => {
+        return fetch('https://api-1.adax.no/client-api/rest/v1/control', {
         method: 'POST',
         body: JSON.stringify({
           rooms: this.planned,
         }),
         headers: {
-          Authorization: `Bearer ${this.token.access_token}`,
+            Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        });
       }).then(() => {
-        return this.getHome(true, true);
+        return this.getHome(true, true, true).then(() => {
+          this.updateQueue();
+      });
+      });
+    } else if(moment().isAfter(moment(this.homeStamp).add(pollingInterval, 's'))) {
+      this.log.debug('Refresh home on empty queue');
+      return this.getHome(true, true).then(() => {
+        this.updateQueue();
       });
     }
   }
 
   getToken() {
+    if (moment.unix(this.token.expiry_date).isAfter(moment())) {
+      return Promise.resolve(this.token.access_token);
+    }
+
     return fetch(`${this.baseUrl}/auth/token`, {
       method: 'POST',
       body: `grant_type=password&username=${this.config.clientId}&password=${this.config.secret}`,
@@ -75,8 +91,8 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
       return res.json();
     }).then((json) => {
       this.token = json;
-      
-      this.discoverDevices();
+      this.token.expiry_date = moment().add(this.token.expires_in, 's').unix();
+      return Promise.resolve(this.token.access_token);
     }).catch((error) => {
       error.text().then((text) => {
         this.log.error(`Could not authenticate with error: ${text}`);
@@ -90,16 +106,18 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
 
   _getHome(delay = 0) {
     return this.sleep(delay).then(() => {
+      return this.getToken().then( token => {
       return fetch(`${this.baseUrl}/rest/v1/content`, {
         headers: {
-          Authorization: `Bearer ${this.token.access_token}`,
+            Authorization: `Bearer ${token}`,
         },
       });
     });
+    });
   }
 
-  getHome(useIdeal = true, setPlanned = false) {
-    if(moment(this.homeStamp).add(5, 's').isAfter(moment())) {
+  getHome(useIdeal = true, setPlanned = false, force = false) {
+    if(force || moment(this.homeStamp).add(60, 's').isAfter(moment())) {
       return Promise.resolve(this.idealState());
     }
 
@@ -134,6 +152,21 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
     });
   }
 
+  updateQueue() {
+    this.queue = this.queue.filter((room) => {
+
+      const current = this.homeState.rooms.find(currentRoom => {
+        return currentRoom.id === room.id;
+      });
+
+      if (current === undefined) {
+        return false; 
+      }
+
+      return room.targetTemperature !== current?.targetTemperature;
+    });
+  }
+
   idealState() {
     const ideal = this.homeState;
 
@@ -150,13 +183,15 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   setRoom(id, state: Record<string, unknown>) {
-    const index = this.planned.findIndex((room) => room.id === id);
+    const index = this.homeState.rooms.findIndex((room) => room.id === id);
 
     if(index !== undefined) {
       this.planned[index] = {
         id: id,
         ...state,
       };
+
+      this.queue = this.planned;
     }
 
     return Promise.resolve({
@@ -182,7 +217,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   discoverDevices() {
-    this.getHome(false).then((home) => {
+    this.getHome(false, true).then((home) => {
       for (const device of home.rooms) {
         const uuid = this.api.hap.uuid.generate(`${device.id}`);
 
