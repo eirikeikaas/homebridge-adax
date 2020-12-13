@@ -21,9 +21,9 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   };
 
   public homeStamp = moment().subtract(1, 'd');
-  public homeState:Home = { rooms: [] };
-  public planned:Array<Room> = [];
-  public queue:Array<Room> = [];
+  public homeState: Home = { rooms: [] };
+  public planned: Array<Room> = [];
+  public queue: Array<Room> = [];
 
   constructor(
     public readonly log: Logger,
@@ -34,7 +34,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      
+
       this.discoverDevices();
     });
 
@@ -48,23 +48,23 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
 
 
     if (this.queue.length > 0) {
-      this.getToken().then( token => {
+      this.getToken().then(token => {
         return fetch('https://api-1.adax.no/client-api/rest/v1/control', {
-        method: 'POST',
-        body: JSON.stringify({
-          rooms: this.planned,
-        }),
-        headers: {
+          method: 'POST',
+          body: JSON.stringify({
+            rooms: this.planned,
+          }),
+          headers: {
             Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+            'Content-Type': 'application/json',
+          },
         });
       }).then(() => {
         return this.getHome(true, true, true).then(() => {
           this.updateQueue();
+        });
       });
-      });
-    } else if(moment().isAfter(moment(this.homeStamp).add(pollingInterval, 's'))) {
+    } else if (moment().isAfter(moment(this.homeStamp).add(pollingInterval, 's'))) {
       this.log.debug('Refresh home on empty queue');
       return this.getHome(true, true).then(() => {
         this.updateQueue();
@@ -84,10 +84,10 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
         'content-type': 'application/x-www-form-urlencoded',
       },
     }).then((res) => {
-      if(!res.ok) {
+      if (!res.ok) {
         throw res;
       }
-      
+
       return res.json();
     }).then((json) => {
       this.token = json;
@@ -106,23 +106,23 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
 
   _getHome(delay = 0) {
     return this.sleep(delay).then(() => {
-      return this.getToken().then( token => {
-      return fetch(`${this.baseUrl}/rest/v1/content`, {
-        headers: {
+      return this.getToken().then(token => {
+        return fetch(`${this.baseUrl}/rest/v1/content`, {
+          headers: {
             Authorization: `Bearer ${token}`,
-        },
+          },
+        });
       });
-    });
     });
   }
 
   getHome(useIdeal = true, setPlanned = false, force = false) {
-    if(force || moment(this.homeStamp).add(60, 's').isAfter(moment())) {
+    if (force || moment(this.homeStamp).add(60, 's').isAfter(moment())) {
       return Promise.resolve(this.idealState());
     }
 
     const secondInterval = moment().seconds() % 3;
-    const delay = secondInterval > 0 ? secondInterval*1000 : 0;
+    const delay = secondInterval > 0 ? secondInterval * 1000 : 0;
 
     return this._getHome(delay).then((res) => {
       if (res.status === 429) {
@@ -160,7 +160,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
       });
 
       if (current === undefined) {
-        return false; 
+        return false;
       }
 
       return room.targetTemperature !== current?.targetTemperature;
@@ -185,7 +185,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
   setRoom(id, state: Record<string, unknown>) {
     const index = this.homeState.rooms.findIndex((room) => room.id === id);
 
-    if(index !== undefined) {
+    if (index !== undefined) {
       this.planned[index] = {
         id: id,
         ...state,
@@ -227,7 +227,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
           if (device) {
             this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
             new ADAXPlatformAccessory(this, existingAccessory);
-            
+
             this.api.updatePlatformAccessories([existingAccessory]);
           } else if (!device) {
             this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
