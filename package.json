@@ -26,7 +26,6 @@
     "homebridge-plugin"
   ],
   "dependencies": {
-    "deep-equal": "^2.0.4",
     "moment": "^2.29.1",
     "node-fetch": "^2.6.1"
   },

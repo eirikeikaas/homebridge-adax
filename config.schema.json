@@ -22,6 +22,12 @@
         "type": "string",
         "required": true,
         "default": ""
+      },
+      "maxPollInterval": {
+        "title": "Max polling interval in seconds",
+        "type": "number",
+        "required": false,
+        "default": 60
       }
     }
   }
