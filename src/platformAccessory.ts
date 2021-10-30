@@ -117,7 +117,7 @@ export class ADAXPlatformAccessory {
   }
 
   handleTemperatureDisplayUnitsGet(callback) {
-    callback(this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS);
+    callback(null, this.platform.Characteristic.TemperatureDisplayUnits.CELSIUS);
   }
 
   handleTargetTemperatureGet(callback) {
