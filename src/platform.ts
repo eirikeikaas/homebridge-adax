@@ -49,7 +49,12 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
 
     if (this.queue.length > 0) {
       this.getToken().then(token => {
-        return fetch('https://api-1.adax.no/client-api/rest/v1/control', {
+        this.log.debug(
+          `Setting rooms: ${JSON.stringify({
+            rooms: this.planned,
+          })}`,
+        );
+        return fetch(`${this.baseUrl}/rest/v1/control`, {
           method: 'POST',
           body: JSON.stringify({
             rooms: this.planned,
@@ -61,11 +66,12 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
         });
       }).then(() => {
         return this.getHome(true, true, true).then(() => {
+          this.log.debug('Refresh home');
           this.updateQueue();
         });
       });
     } else if (moment().isAfter(moment(this.homeStamp).add(pollingInterval, 's'))) {
-      this.log.debug('Refresh home on empty queue');
+      //this.log.debug('Refresh home on empty queue');
       return this.getHome(true, true).then(() => {
         this.updateQueue();
       });
@@ -139,6 +145,7 @@ export class ADAXHomebridgePlatform implements DynamicPlatformPlugin {
         return Promise.reject(`JSON rejected with following response: ${text}`);
       }
     }).then((home) => {
+      this.log.debug(`Got homeState: ${JSON.stringify(home)}`);
       this.homeStamp = moment();
       this.homeState = home;
 
@@ -253,6 +260,7 @@ interface Home {
 
 interface Room {
   id: number;
+  heatingEnabled?: boolean;
   temperature?: number;
   targetTemperature?: number;
 }
