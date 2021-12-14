@@ -1,7 +1,7 @@
 {
   "displayName": "Adax",
   "name": "homebridge-adax",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Homebridge plugin for ADAX heaters.",
   "license": "Apache-2.0",
   "repository": {
@@ -33,9 +33,9 @@
     "@types/node": "^14.11.8",
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.4.1",
-    "eslint": "^7.11.0",
+    "eslint": "^8.4.1",
     "homebridge": "^1.2.2",
-    "nodemon": "^2.0.5",
+    "nodemon": "^2.0.15",
     "rimraf": "^3.0.2",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.3"
