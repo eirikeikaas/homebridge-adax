@@ -147,7 +147,7 @@ export class ADAXPlatformAccessory {
     } else {
       this.platform
         .setRoom(id, {
-          targetTemperature: `${this.roomState.temperature}`,
+          targetTemperature: `${this.roomState.targetTemperature}`,
           heatingEnabled: true,
         })
         .then(() => {
